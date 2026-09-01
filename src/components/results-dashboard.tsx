@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AirportIntelligence, bestAirportStay } from "@/components/airport-intelligence";
 import { ExplainableScoreBreakdown } from "@/components/explainable-score-breakdown";
 import { ExportReportButton } from "@/components/export-report-button";
+import { EvidenceStayMatch } from "@/components/evidence-stay-match";
 import { FacilitiesComparison } from "@/components/facilities-comparison";
 import { ListingScoreCard } from "@/components/listing-score-card";
 import { NearbyIntelligence } from "@/components/nearby-intelligence";
@@ -21,7 +22,10 @@ import { ShareComparisonButton } from "@/components/share-comparison-button";
 import { TravelTimeMatrix } from "@/components/travel-time-matrix";
 import { TripCostComparison } from "@/components/trip-cost-comparison";
 import { AiDecisionBrief } from "@/components/ai-decision-brief";
-import { deriveProfileFromContext } from "@/components/user-trip-profile";
+import {
+  deriveProfileFromContext,
+  UserTripProfileEditor,
+} from "@/components/user-trip-profile";
 import { VerdictBadge } from "@/components/verdict-badge";
 import { useAirportIntelligence } from "@/hooks/use-airport-intelligence";
 import { useGeocodedStays } from "@/hooks/use-geocoded-stays";
@@ -92,7 +96,7 @@ export function ResultsDashboard({
 
   const reference = useMemo(() => buildReference(request), [request]);
 
-  const [profile] = useState<UserTripProfile>(
+  const [profile, setProfile] = useState<UserTripProfile>(
     () => request.tripProfile ?? deriveProfileFromContext(request.tripContext)
   );
 
@@ -164,6 +168,14 @@ export function ResultsDashboard({
         <div className="flex flex-col gap-6">
           <AiDecisionBrief result={result} weights={weights} profile={profile} />
           <RankingTable scoredStays={result.scoredStays} />
+          <details className="border border-border bg-card">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold uppercase tracking-wide">
+              Refine trip needs and evidence rules
+            </summary>
+            <div className="border-t border-border p-4">
+              <UserTripProfileEditor profile={profile} onChange={setProfile} />
+            </div>
+          </details>
         </div>
       </BriefingSection>
 
@@ -190,9 +202,14 @@ export function ResultsDashboard({
         />
       </BriefingSection>
 
-      {/* ─── 05 AIRPORT ACCESS ──────────────────────────────────── */}
+      {/* ─── 05 EVIDENCE MATCH ──────────────────────────────────── */}
+      <BriefingSection code="05" title="Evidence match">
+        <EvidenceStayMatch scoredStays={result.scoredStays} profile={profile} />
+      </BriefingSection>
+
+      {/* ─── 06 AIRPORT ACCESS ──────────────────────────────────── */}
       <BriefingSection
-        code="05"
+        code="06"
         title="Airport access"
         meta={bestIata ? `Best: ${bestIata}` : undefined}
       >
@@ -204,8 +221,8 @@ export function ResultsDashboard({
         />
       </BriefingSection>
 
-      {/* ─── 06 NEIGHBORHOOD ANALYSIS ───────────────────────────── */}
-      <BriefingSection code="06" title="Neighborhood analysis">
+      {/* ─── 07 NEIGHBORHOOD ANALYSIS ───────────────────────────── */}
+      <BriefingSection code="07" title="Neighborhood analysis">
         <NearbyIntelligence
           scoredStays={result.scoredStays}
           errors={nearbyErrors}
@@ -215,24 +232,24 @@ export function ResultsDashboard({
         />
       </BriefingSection>
 
-      {/* ─── 07 FACILITIES COMPARISON ───────────────────────────── */}
-      <BriefingSection code="07" title="Facilities comparison">
+      {/* ─── 08 FACILITIES COMPARISON ───────────────────────────── */}
+      <BriefingSection code="08" title="Facilities comparison">
         <FacilitiesComparison
           stays={result.scoredStays.map((entry) => entry.stay)}
         />
       </BriefingSection>
 
-      {/* ─── 08 RISK ASSESSMENT ─────────────────────────────────── */}
-      <BriefingSection code="08" title="Risk assessment">
+      {/* ─── 09 RISK ASSESSMENT ─────────────────────────────────── */}
+      <BriefingSection code="09" title="Risk assessment">
         <div className="flex flex-col gap-6">
           <RiskAssessment result={result} weights={weights} />
           <ExplainableScoreBreakdown scoredStays={result.scoredStays} />
         </div>
       </BriefingSection>
 
-      {/* ─── 09 RECOMMENDED STAY ────────────────────────────────── */}
+      {/* ─── 10 RECOMMENDED STAY ────────────────────────────────── */}
       <BriefingSection
-        code="09"
+        code="10"
         title="Recommended stay"
         meta={<StatusTag status="go">Primary</StatusTag>}
       >
@@ -245,9 +262,9 @@ export function ResultsDashboard({
         </div>
       </BriefingSection>
 
-      {/* ─── 10 ALTERNATIVE OPTIONS ─────────────────────────────── */}
+      {/* ─── 11 ALTERNATIVE OPTIONS ─────────────────────────────── */}
       <BriefingSection
-        code="10"
+        code="11"
         title="Alternative options"
         meta={`${String(alternatives.length).padStart(2, "0")} on file`}
       >

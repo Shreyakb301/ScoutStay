@@ -2,6 +2,7 @@
 
 import { Check, Trash2 } from "lucide-react";
 
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +12,17 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { StayListing } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { FACILITIES } from "@/lib/facilities";
+import { PLATFORM_OPTIONS } from "@/lib/mock-data";
+import type { FacilityId, Platform, StayListing } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type UrlStatus = "empty" | "valid" | "invalid";
@@ -21,7 +32,7 @@ type UrlStatus = "empty" | "valid" | "invalid";
  * "does this page exist" check isn't possible from the browser — Airbnb
  * blocks cross-origin requests — so we validate the URL shape instead.
  */
-function airbnbUrlStatus(value: string): UrlStatus {
+function listingUrlStatus(value: string, platform: Platform): UrlStatus {
   const trimmed = value.trim();
   if (!trimmed) return "empty";
   let url: URL;
@@ -32,7 +43,8 @@ function airbnbUrlStatus(value: string): UrlStatus {
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return "invalid";
   const host = url.hostname.toLowerCase();
-  if (host === "abnb.me") return "valid"; // official short links
+  if (platform !== "airbnb") return "valid";
+  if (host === "abnb.me") return "valid";
   const isAirbnb = /(^|\.)airbnb\.[a-z.]+$/.test(host);
   if (!isAirbnb) return "invalid";
   if (!/\/rooms\/\d+/.test(url.pathname)) return "invalid";
@@ -66,14 +78,13 @@ export function StayListingFields({
   onRemove,
   canRemove,
 }: StayListingFieldsProps) {
-  const urlStatus = airbnbUrlStatus(stay.url);
+  const urlStatus = listingUrlStatus(stay.url, stay.platform);
 
   const handleUrlChange = (value: string) => {
     const patch: Partial<Omit<StayListing, "id">> = {
       url: value,
-      platform: "airbnb",
     };
-    const name = deriveNameFromUrl(value);
+    const name = stay.platform === "airbnb" ? deriveNameFromUrl(value) : "";
     if (name) patch.name = name;
     onChange(stay.id, patch);
   };
@@ -97,14 +108,44 @@ export function StayListingFields({
         )}
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor={`stay-${stay.id}-platform`}>Platform</Label>
+          <Select
+            value={stay.platform}
+            onValueChange={(value) => onChange(stay.id, { platform: value as Platform })}
+          >
+            <SelectTrigger id={`stay-${stay.id}-platform`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PLATFORM_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stay-${stay.id}-name`}>Stay name</Label>
+          <Input
+            id={`stay-${stay.id}-name`}
+            value={stay.name}
+            placeholder="Downtown loft"
+            required
+            onChange={(event) => onChange(stay.id, { name: event.target.value })}
+          />
+        </div>
         <div className="grid gap-2 sm:col-span-2">
-          <Label htmlFor={`stay-${stay.id}-url`}>Airbnb listing link</Label>
+          <Label htmlFor={`stay-${stay.id}-url`}>
+            Source listing link <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
           <div className="relative">
             <Input
               id={`stay-${stay.id}-url`}
               type="url"
               inputMode="url"
-              placeholder="https://www.airbnb.com/rooms/12345678"
+              placeholder="https://…"
               value={stay.url}
               onChange={(event) => handleUrlChange(event.target.value)}
               aria-invalid={urlStatus === "invalid"}
@@ -113,7 +154,6 @@ export function StayListingFields({
                 urlStatus === "valid" &&
                   "border-go focus-visible:border-go focus-visible:ring-go/30"
               )}
-              required
             />
             {urlStatus === "valid" && (
               <Check className="pointer-events-none absolute inset-y-0 right-2 my-auto size-4 text-go" />
@@ -121,10 +161,51 @@ export function StayListingFields({
           </div>
           {urlStatus === "invalid" && (
             <p className="text-xs text-destructive">
-              That doesn&apos;t look like a valid Airbnb listing link (e.g.
-              airbnb.com/rooms/12345678).
+              Enter a complete http(s) listing URL
+              {stay.platform === "airbnb" ? " such as airbnb.com/rooms/12345678" : ""}.
             </p>
           )}
+        </div>
+
+        <div className="grid gap-2 sm:col-span-2">
+          <Label htmlFor={`stay-${stay.id}-address`}>Address or area</Label>
+          <AddressAutocomplete
+            id={`stay-${stay.id}-address`}
+            value={stay.address ?? ""}
+            hasSelection={typeof stay.latitude === "number" && typeof stay.longitude === "number"}
+            selectionCaption={[stay.city, stay.region].filter(Boolean).join(", ")}
+            placeholder="Search for an address or neighborhood"
+            onInputChange={(address) =>
+              onChange(stay.id, {
+                address,
+                latitude: undefined,
+                longitude: undefined,
+                placeName: undefined,
+                city: undefined,
+                region: undefined,
+              })
+            }
+            onSelect={(suggestion) =>
+              onChange(stay.id, {
+                address: suggestion.formattedAddress,
+                latitude: suggestion.latitude,
+                longitude: suggestion.longitude,
+                placeName: suggestion.placeName,
+                city: suggestion.city,
+                region: suggestion.region,
+              })
+            }
+            onClear={() =>
+              onChange(stay.id, {
+                address: "",
+                latitude: undefined,
+                longitude: undefined,
+                placeName: undefined,
+                city: undefined,
+                region: undefined,
+              })
+            }
+          />
         </div>
 
         <div className="grid gap-2">
@@ -184,6 +265,70 @@ export function StayListingFields({
             onChange={(event) =>
               onChange(stay.id, { parkingPerNight: event.target.value })
             }
+          />
+        </div>
+        {[
+          ["bedrooms", "Bedrooms", "1"],
+          ["beds", "Beds", "1"],
+          ["bathrooms", "Bathrooms", "1"],
+          ["maxGuests", "Max guests", "2"],
+          ["rating", "Rating", "4.8"],
+          ["reviewCount", "Review count", "100"],
+        ].map(([field, label, placeholder]) => (
+          <div key={field} className="grid gap-2">
+            <Label htmlFor={`stay-${stay.id}-${field}`}>{label}</Label>
+            <Input
+              id={`stay-${stay.id}-${field}`}
+              type="number"
+              min="0"
+              max={field === "rating" ? "5" : undefined}
+              step={field === "rating" || field === "bathrooms" ? "0.1" : "1"}
+              placeholder={placeholder}
+              value={(stay[field as keyof StayListing] as number | undefined) ?? ""}
+              onChange={(event) =>
+                onChange(stay.id, {
+                  [field]: event.target.value === "" ? undefined : Number(event.target.value),
+                })
+              }
+            />
+          </div>
+        ))}
+
+        <fieldset className="grid gap-2 sm:col-span-2">
+          <legend className="text-sm font-medium">Facilities and amenities</legend>
+          <div className="flex flex-wrap gap-2">
+            {FACILITIES.map((facility) => {
+              const active = stay.facilities?.includes(facility.id) ?? false;
+              return (
+                <button
+                  key={facility.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    const current = new Set(stay.facilities ?? []);
+                    if (active) current.delete(facility.id);
+                    else current.add(facility.id);
+                    onChange(stay.id, { facilities: [...current] as FacilityId[] });
+                  }}
+                  className={cn(
+                    "border px-2.5 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    active ? "border-go bg-go/10 text-foreground" : "border-border text-muted-foreground"
+                  )}
+                >
+                  {active ? "✓ " : ""}{facility.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-2 sm:col-span-2">
+          <Label htmlFor={`stay-${stay.id}-notes`}>Notes and review evidence</Label>
+          <Textarea
+            id={`stay-${stay.id}-notes`}
+            value={stay.notes ?? ""}
+            placeholder="Paste relevant listing details or review notes, including noise, access, or neighborhood context."
+            onChange={(event) => onChange(stay.id, { notes: event.target.value })}
           />
         </div>
       </CardContent>
