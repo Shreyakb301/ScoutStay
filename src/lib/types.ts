@@ -46,6 +46,11 @@ export interface StayListing {
   url: string;
   platform: Platform;
   pricePerNight: string;
+  /** One-time fees for the full reservation, entered in USD. */
+  cleaningFee?: string;
+  taxesAndFees?: string;
+  /** Optional nightly parking charge, entered in USD. */
+  parkingPerNight?: string;
   /** Formatted address (from autocomplete selection or typed manually). */
   address?: string;
   /** Coordinates, set when the user picks an autocomplete suggestion. */

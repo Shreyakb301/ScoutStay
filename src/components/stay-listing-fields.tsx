@@ -144,6 +144,48 @@ export function StayListingFields({
             }
           />
         </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stay-${stay.id}-cleaning`}>Cleaning fee (USD)</Label>
+          <Input
+            id={`stay-${stay.id}-cleaning`}
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="75"
+            value={stay.cleaningFee ?? ""}
+            onChange={(event) =>
+              onChange(stay.id, { cleaningFee: event.target.value })
+            }
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stay-${stay.id}-taxes`}>Taxes and other fees (USD)</Label>
+          <Input
+            id={`stay-${stay.id}-taxes`}
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="120"
+            value={stay.taxesAndFees ?? ""}
+            onChange={(event) =>
+              onChange(stay.id, { taxesAndFees: event.target.value })
+            }
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`stay-${stay.id}-parking`}>Parking per night (USD)</Label>
+          <Input
+            id={`stay-${stay.id}-parking`}
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="25"
+            value={stay.parkingPerNight ?? ""}
+            onChange={(event) =>
+              onChange(stay.id, { parkingPerNight: event.target.value })
+            }
+          />
+        </div>
       </CardContent>
     </Card>
   );

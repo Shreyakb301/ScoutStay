@@ -18,6 +18,8 @@ import { RecommendationPanel } from "@/components/recommendation-panel";
 import { RiskAssessment } from "@/components/risk-assessment";
 import { SaveComparisonButton } from "@/components/save-comparison-button";
 import { ShareComparisonButton } from "@/components/share-comparison-button";
+import { TravelTimeMatrix } from "@/components/travel-time-matrix";
+import { TripCostComparison } from "@/components/trip-cost-comparison";
 import { AiDecisionBrief } from "@/components/ai-decision-brief";
 import { deriveProfileFromContext } from "@/components/user-trip-profile";
 import { VerdictBadge } from "@/components/verdict-badge";
@@ -129,6 +131,7 @@ export function ResultsDashboard({
                 stays: request.stays,
                 weights,
                 tripProfile: profile,
+                tripContext: request.tripContext,
               }}
             />
             <ExportReportButton result={result} weights={weights} profile={profile} />
@@ -169,9 +172,27 @@ export function ResultsDashboard({
         <StayMap scoredStays={result.scoredStays} airports={airports} />
       </BriefingSection>
 
-      {/* ─── 03 AIRPORT ACCESS ──────────────────────────────────── */}
+      {/* ─── 03 ITINERARY LOGISTICS ─────────────────────────────── */}
+      <BriefingSection code="03" title="Itinerary logistics">
+        <TravelTimeMatrix
+          stays={request.stays}
+          locations={locations}
+          destinations={request.tripContext?.visitPlaces ?? []}
+        />
+      </BriefingSection>
+
+      {/* ─── 04 TRIP COST ───────────────────────────────────────── */}
+      <BriefingSection code="04" title="Trip cost">
+        <TripCostComparison
+          stays={request.stays}
+          tripContext={request.tripContext}
+          travelers={profile.travelerCount}
+        />
+      </BriefingSection>
+
+      {/* ─── 05 AIRPORT ACCESS ──────────────────────────────────── */}
       <BriefingSection
-        code="03"
+        code="05"
         title="Airport access"
         meta={bestIata ? `Best: ${bestIata}` : undefined}
       >
@@ -183,8 +204,8 @@ export function ResultsDashboard({
         />
       </BriefingSection>
 
-      {/* ─── 04 NEIGHBORHOOD ANALYSIS ───────────────────────────── */}
-      <BriefingSection code="04" title="Neighborhood analysis">
+      {/* ─── 06 NEIGHBORHOOD ANALYSIS ───────────────────────────── */}
+      <BriefingSection code="06" title="Neighborhood analysis">
         <NearbyIntelligence
           scoredStays={result.scoredStays}
           errors={nearbyErrors}
@@ -194,24 +215,24 @@ export function ResultsDashboard({
         />
       </BriefingSection>
 
-      {/* ─── 05 FACILITIES COMPARISON ───────────────────────────── */}
-      <BriefingSection code="05" title="Facilities comparison">
+      {/* ─── 07 FACILITIES COMPARISON ───────────────────────────── */}
+      <BriefingSection code="07" title="Facilities comparison">
         <FacilitiesComparison
           stays={result.scoredStays.map((entry) => entry.stay)}
         />
       </BriefingSection>
 
-      {/* ─── 06 RISK ASSESSMENT ─────────────────────────────────── */}
-      <BriefingSection code="06" title="Risk assessment">
+      {/* ─── 08 RISK ASSESSMENT ─────────────────────────────────── */}
+      <BriefingSection code="08" title="Risk assessment">
         <div className="flex flex-col gap-6">
           <RiskAssessment result={result} weights={weights} />
           <ExplainableScoreBreakdown scoredStays={result.scoredStays} />
         </div>
       </BriefingSection>
 
-      {/* ─── 07 RECOMMENDED STAY ────────────────────────────────── */}
+      {/* ─── 09 RECOMMENDED STAY ────────────────────────────────── */}
       <BriefingSection
-        code="07"
+        code="09"
         title="Recommended stay"
         meta={<StatusTag status="go">Primary</StatusTag>}
       >
@@ -224,9 +245,9 @@ export function ResultsDashboard({
         </div>
       </BriefingSection>
 
-      {/* ─── 08 ALTERNATIVE OPTIONS ─────────────────────────────── */}
+      {/* ─── 10 ALTERNATIVE OPTIONS ─────────────────────────────── */}
       <BriefingSection
-        code="08"
+        code="10"
         title="Alternative options"
         meta={`${String(alternatives.length).padStart(2, "0")} on file`}
       >

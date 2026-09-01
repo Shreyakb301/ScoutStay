@@ -20,12 +20,14 @@ import type {
   TravelerTypeId,
   UserTripProfile,
 } from "@/lib/types";
+import type { TripContext } from "@/lib/trip-intake";
 
 export interface ShareState {
   travelerType: TravelerTypeId;
   stays: StayListing[];
   weights: ScoreWeights;
   tripProfile?: UserTripProfile;
+  tripContext?: TripContext;
 }
 
 /** The query parameter that carries the encoded state. */
@@ -55,6 +57,9 @@ interface CompactStay {
   u: string;
   p: Platform;
   pr: string;
+  cl?: string;
+  tx?: string;
+  pk?: string;
   a?: string;
   la?: number;
   lo?: number;
@@ -84,6 +89,7 @@ interface CompactState {
   s: CompactStay[];
   /** Trip profile, stored as-is (gzip keeps it small). */
   tp?: UserTripProfile;
+  tc?: TripContext;
 }
 
 const VALID_TRAVELERS = new Set<string>(TRAVELER_TYPES.map((type) => type.id));
@@ -156,6 +162,9 @@ function toCompact(state: ShareState): CompactState {
         p: stay.platform,
         pr: stay.pricePerNight,
       };
+      if (stay.cleaningFee) compact.cl = stay.cleaningFee;
+      if (stay.taxesAndFees) compact.tx = stay.taxesAndFees;
+      if (stay.parkingPerNight) compact.pk = stay.parkingPerNight;
       if (stay.address) compact.a = stay.address;
       if (typeof stay.latitude === "number") compact.la = stay.latitude;
       if (typeof stay.longitude === "number") compact.lo = stay.longitude;
@@ -180,6 +189,7 @@ function toCompact(state: ShareState): CompactState {
       return compact;
     }),
     ...(state.tripProfile ? { tp: state.tripProfile } : {}),
+    ...(state.tripContext ? { tc: state.tripContext } : {}),
   };
 }
 
@@ -219,6 +229,9 @@ function fromCompact(compact: CompactState): ShareState {
       platform,
       pricePerNight: typeof item.pr === "string" ? item.pr : "",
     };
+    if (typeof item.cl === "string") stay.cleaningFee = item.cl;
+    if (typeof item.tx === "string") stay.taxesAndFees = item.tx;
+    if (typeof item.pk === "string") stay.parkingPerNight = item.pk;
     if (typeof item.a === "string") stay.address = item.a;
     if (typeof item.la === "number") stay.latitude = item.la;
     if (typeof item.lo === "number") stay.longitude = item.lo;
@@ -252,6 +265,7 @@ function fromCompact(compact: CompactState): ShareState {
     stays,
     weights,
     ...(compact.tp ? { tripProfile: compact.tp } : {}),
+    ...(compact.tc ? { tripContext: compact.tc } : {}),
   };
 }
 
@@ -297,7 +311,7 @@ export async function decodeComparison(
 /** Build the full shareable URL for the current origin. */
 export async function buildShareUrl(
   state: ShareState,
-  pathname = "/compare"
+  pathname = "/brief"
 ): Promise<string> {
   const token = await encodeComparison(state);
   const base =
@@ -322,5 +336,6 @@ export function toComparisonRequest(state: ShareState): ComparisonRequest {
     travelerType: state.travelerType,
     stays: state.stays,
     ...(state.tripProfile ? { tripProfile: state.tripProfile } : {}),
+    ...(state.tripContext ? { tripContext: state.tripContext } : {}),
   };
 }
