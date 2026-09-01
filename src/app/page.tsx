@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HomeDemo } from "@/components/home-demo";
 import { Button } from "@/components/ui/button";
 
 const STEPS = [
@@ -57,9 +58,9 @@ export default function HomePage() {
             size="lg"
             variant="outline"
             nativeButton={false}
-            render={<Link href="#procedure" />}
+            render={<Link href="#demo" />}
           >
-            How it works
+            Try the demo
           </Button>
         </div>
       </section>
@@ -86,6 +87,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <HomeDemo />
 
       {/* Capabilities */}
       <section className="py-14">
