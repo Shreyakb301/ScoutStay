@@ -59,6 +59,8 @@ export interface StayListing {
   notes?: string;
   /** Selected amenities/facilities for this stay. */
   facilities?: FacilityId[];
+  /** Complete, provider/user-reviewed amenity labels used for comparison. */
+  amenities?: string[];
 
   /* --- Evidence sources for the RAG stay-match engine (all optional) --- */
   /** Full listing description / "about this space" text. */

@@ -1,10 +1,10 @@
-import { normalizeApifyItem, isValidAirbnbUrl } from "@/lib/listing-normalizer";
+import { normalizeScrapedItem, isValidAirbnbUrl } from "@/lib/listing-normalizer";
 import { scrapeAirbnbListing, ScrapeError } from "@/lib/scrape-listing";
 import type { ScrapeErrorCode, ScrapeResult } from "@/lib/scrape-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function fail(code: ScrapeErrorCode, error: string, status: number): Response {
   return Response.json({ ok: false, code, error } satisfies ScrapeResult, {
@@ -41,25 +41,20 @@ export async function POST(request: Request): Promise<Response> {
       : undefined;
 
   try {
-    const items = await scrapeAirbnbListing(url, {
+    const scrape = await scrapeAirbnbListing(url, {
       checkIn: isoDateString(body.checkIn),
       checkOut: isoDateString(body.checkOut),
       adults,
     });
-    if (items.length === 0) {
-      return fail(
-        "no_data",
-        "The scraper returned no data for this listing. It may be private or unavailable.",
-        502
-      );
-    }
-    const listing = normalizeApifyItem(items[0], url);
+    const listing = normalizeScrapedItem(scrape.item, url, scrape.provider);
     return Response.json({ ok: true, listing } satisfies ScrapeResult);
   } catch (error) {
     if (error instanceof ScrapeError) {
       const status =
         error.code === "not_configured"
           ? 503
+          : error.code === "provider_limit"
+            ? 402
           : error.code === "timeout"
             ? 504
             : 502;

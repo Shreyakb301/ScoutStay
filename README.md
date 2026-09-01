@@ -1,49 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ScoutStay
 
-## Maps & geocoding (OpenStreetMap — no API key required)
+**A smarter way to compare short-term stays before you book.**
 
-The dashboard map and address autocomplete run entirely on free, open services. There is **no token, account, or `.env` setup**:
+ScoutStay is an Airbnb amenity comparison tool. Paste two public Airbnb links, review the amenities Firecrawl extracts, and see what both listings share and what only one listing provides.
 
-- **Map display:** [React Leaflet](https://react-leaflet.js.org/) rendering [OpenStreetMap](https://www.openstreetmap.org/) tiles (attribution shown on the map).
-- **Geocoding & address search:** [Nominatim](https://nominatim.org/), OpenStreetMap's geocoder.
-- **Nearby intelligence:** the [Overpass API](https://overpass-api.de/), which the dashboard queries once per stay for amenities within 800 m (restaurants, cafés, groceries, pharmacies, hospitals, transit stops, nightlife, parks, attractions). These real counts replace the mock food-access, transit, and quietness scores.
-- **Airport accessibility:** Overpass again, finding the nearest major airport (IATA-coded aerodromes, preferring international/passenger airports) within 100 km of each stay — straight-line distance, a rough 40 km/h drive estimate, and a 0–100 access score, with the airport shown on the dashboard map.
+## Demo
 
-To stay within the [Nominatim](https://operations.osmfoundation.org/policies/nominatim/) and Overpass usage policies, the app debounces autocomplete input (500 ms), throttles all API requests to at most ~1 per second, keeps Overpass queries minimal (one compact query per location), and caches every result in memory for the session — keyed by normalized address for geocoding and rounded coordinates for nearby places — so nothing is requested twice. These are shared community services, fine for development and light use; **production apps should self-host Nominatim/Overpass or use a commercial location provider.**
+Run `npm run dev`, then open the `/compare` URL printed by Next.js. If port
+`3000` is already occupied, Next.js automatically selects another port.
 
-**Testing locally:** run `npm run dev`, open `/compare`, and type a real address (3+ characters) into a stay's Address field — suggestions appear after a short pause. Pick one, submit the form, and the dashboard's "Location intelligence" card shows numbered, color-coded markers; click a marker for the stay's score, platform, and nightly price. Stays whose address can't be placed are listed in a footnote under the map instead of failing the page.
+## Project structure
 
-## Getting Started
+| Path | Purpose |
+| --- | --- |
+| `src/app` | Next.js pages, layouts, and API routes |
+| `src/components` | Two-listing import, amenity review, and comparison interface |
+| `src/lib` | Firecrawl integration, listing normalization, and amenity matching |
+| `public` | Static assets |
 
-First, run the development server:
+## Frontend
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js App Router with React client components
+- Tailwind CSS interface with reusable UI primitives
+- Concurrent two-listing import with independent error recovery
+- Responsive shared-and-different amenity results
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Special features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Feature | What it does |
+| --- | --- |
+| Firecrawl import | Pulls two public Airbnb listings concurrently |
+| Editable review | Lets users correct incomplete scraped amenity lists |
+| Shared amenities | Groups amenities found in both reviewed listings |
+| Differences table | Shows listing-specific amenities without forcing a winner |
+| Manual recovery | Keeps successful data when the other listing cannot be scraped |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How it works
 
-## Learn More
+1. Paste two Airbnb listing links.
+2. ScoutStay imports both listings with Firecrawl and lets you correct the extracted amenities.
+3. The results show shared amenities first, followed by a neutral table of differences.
 
-To learn more about Next.js, take a look at the following resources:
+## Tech stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`Next.js` · `React` · `TypeScript` · `Tailwind CSS` · `Firecrawl`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Listing scraper configuration
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set `FIRECRAWL_API_KEY` to use Firecrawl as the Airbnb listing scraper. When a
+listing is blocked or incomplete, ScoutStay keeps the other successful import
+and lets the user enter or correct amenities manually.

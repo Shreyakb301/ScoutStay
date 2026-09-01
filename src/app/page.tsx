@@ -5,29 +5,29 @@ import { Button } from "@/components/ui/button";
 const STEPS = [
   {
     code: "01",
-    title: "Declare the mission",
+    title: "Paste two links",
     description:
-      "Set the passenger profile: solo, couple, family, friends, or business. Each profile reweights the assessment.",
+      "Add the two public Airbnb room links you want to compare.",
   },
   {
     code: "02",
-    title: "File the manifest",
+    title: "Review the amenities",
     description:
-      "Add 2–5 shortlisted stays from Airbnb, Vrbo, Booking.com, or a hotel, with the nightly rate and address.",
+      "Firecrawl imports both listings. Correct or add anything Airbnb did not expose.",
   },
   {
     code: "03",
-    title: "Receive the briefing",
+    title: "Compare the differences",
     description:
-      "Get a structured dossier: executive summary, location, airport access, neighborhood, and risk, scored and ranked.",
+      "See common amenities first, then a neutral table of what only one listing provides.",
   },
 ];
 
 const CAPABILITIES = [
-  ["Location analysis", "Geospatial plot of every stay on a live map"],
-  ["Airport access", "Nearest IATA, distance, and transfer-time estimates"],
-  ["Neighborhood", "Live OpenStreetMap counts within 800 m of each stay"],
-  ["Risk assessment", "Noise, transfer, and data-confidence flags per stay"],
+  ["Firecrawl import", "Two listings are imported concurrently on the server"],
+  ["Editable review", "Add or remove amenities before accepting scraped data"],
+  ["Shared amenities", "See what both properties provide at a glance"],
+  ["Neutral differences", "Compare unique amenities without a forced winner"],
 ];
 
 export default function HomePage() {
@@ -36,27 +36,27 @@ export default function HomePage() {
       {/* Hero */}
       <section className="border-b-4 border-foreground py-16 md:py-24">
         <span className="eyebrow text-foreground">
-          Operational travel briefings
+          Airbnb amenity comparison
         </span>
         <h1 className="mt-5 max-w-4xl text-5xl font-bold uppercase leading-[0.95] tracking-tight md:text-7xl">
-          Brief your shortlist like a flight plan
+          See what each stay actually provides
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-          You&apos;ve narrowed it to a few stays. ScoutStay assesses each one
-          against the criteria that matter for your trip and returns a single,
-          structured decision dossier: location, airport access, neighborhood,
-          and risk.
+          Paste two Airbnb links and ScoutStay will organize their amenities
+          into a clear, reviewable comparison. See what both stays share and
+          what makes each one different without a black-box score.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button size="lg" render={<Link href="/compare" />}>
-            Start a briefing
+          <Button nativeButton={false} size="lg" render={<Link href="/compare" />}>
+            Compare two Airbnbs
           </Button>
           <Button
             size="lg"
             variant="outline"
+            nativeButton={false}
             render={<Link href="#procedure" />}
           >
-            Procedure
+            How it works
           </Button>
         </div>
       </section>
@@ -66,7 +66,7 @@ export default function HomePage() {
         <div className="flex items-baseline gap-3 border-b-2 border-foreground pb-2">
           <span className="data text-xs font-semibold text-signal">§</span>
           <h2 className="text-lg font-bold uppercase tracking-[0.12em]">
-            Procedure
+            How it works
           </h2>
         </div>
         <div className="mt-6 grid gap-px border border-border bg-border md:grid-cols-3">
@@ -89,7 +89,7 @@ export default function HomePage() {
         <div className="flex items-baseline gap-3 border-b-2 border-foreground pb-2">
           <span className="data text-xs font-semibold text-signal">§</span>
           <h2 className="text-lg font-bold uppercase tracking-[0.12em]">
-            Intelligence sections
+            Comparison included
           </h2>
         </div>
         <dl className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
@@ -108,11 +108,11 @@ export default function HomePage() {
           Ready to settle the debate?
         </h2>
         <p className="max-w-xl text-muted-foreground">
-          No account, no setup. File your manifest and get a briefing in
-          seconds.
+          Paste your two shortlisted Airbnb links, verify the imported details,
+          and compare their amenities side by side.
         </p>
-        <Button size="lg" render={<Link href="/compare" />}>
-          Generate a briefing
+        <Button nativeButton={false} size="lg" render={<Link href="/compare" />}>
+          Compare amenities
         </Button>
       </section>
     </div>

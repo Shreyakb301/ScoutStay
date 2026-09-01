@@ -1,10 +1,10 @@
 /**
- * Listing normalizer — best-effort mapping from a raw Apify Airbnb-scraper
- * item into ScoutStay's normalized shape, plus the conversion into a
+ * Listing normalizer — best-effort mapping from a raw provider response into
+ * ScoutStay's normalized shape, plus the conversion into a
  * StayListing for the comparison. Pure and isomorphic: it never touches the
  * network or process.env, so it runs on both the API route and the client.
  *
- * Airbnb's markup and the various community actors change often, so every
+ * Airbnb's markup and scraping-provider responses change often, so every
  * getter tries several likely shapes and degrades gracefully.
  */
 
@@ -15,8 +15,6 @@ import type {
   FieldEvidence,
   NormalizedListing,
 } from "@/lib/scrape-types";
-
-const SOURCE = "apify";
 
 /** Validates a string is a well-formed Airbnb listing link. */
 export function isValidAirbnbUrl(value: string): boolean {
@@ -60,6 +58,33 @@ function toNum(value: unknown): number | null {
   return null;
 }
 
+function toStringArray(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => {
+      if (typeof item === "string") return item;
+      const rec = asRecord(item);
+      const text = rec
+        ? toStr(
+            rec.title ??
+              rec.name ??
+              rec.label ??
+              rec.text ??
+              rec.subtitle ??
+              rec.subTitle
+          )
+        : null;
+      return text ? [text] : [];
+    });
+  }
+  const rec = asRecord(value);
+  if (!rec) return [];
+  const text = toStr(
+    rec.title ?? rec.name ?? rec.label ?? rec.text ?? rec.subtitle ?? rec.subTitle
+  );
+  return text ? [text] : [];
+}
+
 /** Read the first key that yields a non-null value, walking dotted paths. */
 function pickFrom(
   obj: Record<string, unknown>,
@@ -90,17 +115,26 @@ function pickNumber(obj: Record<string, unknown>, paths: string[]): number | nul
   return toNum(pickFrom(obj, paths));
 }
 
-function ev<T>(field: string, value: T, confidence: Confidence): FieldEvidence<T> {
-  return { field, value, source: SOURCE, confidence };
+function ev<T>(
+  field: string,
+  value: T,
+  confidence: Confidence,
+  source: string
+): FieldEvidence<T> {
+  return { field, value, source, confidence };
 }
 
 /** Confidence "high" when the value resolved, "low" when it's null/empty. */
-function autoEv<T>(field: string, value: T | null): FieldEvidence<T | null> {
+function autoEv<T>(
+  field: string,
+  value: T | null,
+  source: string
+): FieldEvidence<T | null> {
   const present =
     value !== null &&
     value !== undefined &&
     !(Array.isArray(value) && value.length === 0);
-  return ev(field, value, present ? "high" : "low");
+  return ev(field, value, present ? "high" : "low", source);
 }
 
 // --- amenity → facility mapping --------------------------------------------
@@ -141,7 +175,13 @@ export function mapAmenitiesToFacilities(amenities: string[]): FacilityId[] {
 /** Flatten amenities given as strings, {title|name}, or grouped {values}. */
 function extractAmenities(raw: Record<string, unknown>): string[] {
   const source =
-    pickFrom(raw, ["amenities", "amenityIds", "previewAmenities", "listingAmenities"]) ??
+    pickFrom(raw, [
+      "amenities",
+      "amenityIds",
+      "previewAmenities",
+      "listingAmenities",
+      "sections.amenities",
+    ]) ??
     [];
   const out: string[] = [];
   const visit = (value: unknown) => {
@@ -212,6 +252,16 @@ function parseRoomCounts(parts: string[]): RoomCounts {
   return counts;
 }
 
+function extractRoomCountParts(raw: Record<string, unknown>): string[] {
+  const parts = [
+    ...toStringArray(raw.overviewItems),
+    ...toStringArray(raw.bedInfo),
+    ...toStringArray(raw.subtitle),
+    ...toStringArray(raw.sharingTitle).flatMap((text) => text.split(/[·•]/)),
+  ];
+  return parts.map((part) => part.trim()).filter(Boolean);
+}
+
 /** Join house-rule titles into a single text blob. */
 function extractHouseRules(raw: Record<string, unknown>): string | null {
   const source = raw.houseRules;
@@ -221,7 +271,7 @@ function extractHouseRules(raw: Record<string, unknown>): string | null {
         typeof item === "string" ? item : toStr(asRecord(item)?.title)
       )
       .filter((s): s is string => Boolean(s));
-    return titles.length > 0 ? titles.join(". ") : null;
+    return titles.length > 0 ? titles.join("\n") : null;
   }
   return toStr(source);
 }
@@ -258,9 +308,20 @@ function extractPrice(raw: Record<string, unknown>): number | null {
   return pickNumber(raw, [
     "price",
     "pricePerNight",
-    "price.rate",
     "price.amount",
+    "price.value",
+    "price.rate.amount",
+    "price.rate",
+    "pricing.price",
+    "pricing.amount",
+    "pricing.total",
+    "pricing.costPerNight",
+    "pricing.rate",
     "pricing.rate.amount",
+    "pricing.rate.value",
+    "pricing.quote.rate.amount",
+    "pricing.quote.price.amount",
+    "structuredDisplayPrice.primaryLine.price",
     "rate",
   ]);
 }
@@ -289,77 +350,192 @@ function extractImages(raw: Record<string, unknown>): string[] {
     .map((item) => {
       if (typeof item === "string") return item;
       const rec = asRecord(item);
-      return rec ? toStr(rec.url ?? rec.src ?? rec.imageUrl ?? rec.picture) : null;
+      return rec
+        ? toStr(
+            rec.url ??
+              rec.src ??
+              rec.imageUrl ??
+              rec.picture ??
+              rec.originalUrl ??
+              rec.largeUrl ??
+              rec.thumbnailUrl
+          )
+        : null;
     })
     .filter((u): u is string => Boolean(u))
     .slice(0, 12);
 }
 
+function pickCoordinate(
+  raw: Record<string, unknown>,
+  location: Record<string, unknown> | null,
+  kind: "lat" | "lng"
+): number | null {
+  const direct =
+    kind === "lat"
+      ? [
+          "latitude",
+          "lat",
+          "coordinates.latitude",
+          "coordinate.latitude",
+          "geo.latitude",
+        ]
+      : [
+          "longitude",
+          "lng",
+          "lon",
+          "coordinates.longitude",
+          "coordinates.lng",
+          "coordinate.longitude",
+          "geo.longitude",
+        ];
+  const locationPaths =
+    kind === "lat"
+      ? ["latitude", "lat", "coordinates.latitude", "coordinate.latitude"]
+      : [
+          "longitude",
+          "lng",
+          "lon",
+          "coordinates.longitude",
+          "coordinates.lng",
+          "coordinate.longitude",
+        ];
+  const fromLocation = location ? pickNumber(location, locationPaths) : null;
+  if (fromLocation !== null) return fromLocation;
+
+  const coordinates = location?.coordinates ?? raw.coordinates;
+  if (Array.isArray(coordinates)) {
+    const first = toNum(coordinates[0]);
+    const second = toNum(coordinates[1]);
+    if (first !== null && second !== null) {
+      // GeoJSON is [lng, lat], while some scrapers return [lat, lng].
+      return kind === "lat"
+        ? Math.abs(first) <= 90
+          ? first
+          : second
+        : Math.abs(first) <= 90
+          ? second
+          : first;
+    }
+  }
+
+  return pickNumber(raw, direct);
+}
+
+function extractRating(raw: Record<string, unknown>): number | null {
+  const direct = pickNumber(raw, [
+    "starRating",
+    "rating",
+    "rating.value",
+    "ratings.value",
+    "avgRating",
+    "averageRating",
+  ]);
+  if (direct !== null) return direct;
+
+  const ratings = raw.ratings;
+  if (!Array.isArray(ratings)) return null;
+  for (const item of ratings) {
+    const rec = asRecord(item);
+    const value = rec
+      ? toNum(rec.value ?? rec.rating ?? rec.score ?? rec.localizedRating)
+      : toNum(item);
+    if (value !== null && value <= 5) return value;
+  }
+  return null;
+}
+
 // --- main normalizer --------------------------------------------------------
 
-export function normalizeApifyItem(
+export function normalizeScrapedItem(
   rawItem: unknown,
-  url: string
+  url: string,
+  source = "firecrawl"
 ): NormalizedListing {
   const raw = asRecord(rawItem) ?? {};
   const warnings: string[] = [];
   const location = asRecord(raw.location);
 
-  const name = pickString(raw, ["title", "name", "sharingTitle", "listingName"]);
+  const name = pickString(raw, [
+    "title",
+    "name",
+    "sharingTitle",
+    "listingName",
+    "propertyName",
+  ]);
   const price = extractPrice(raw);
 
   // Room counts come from "12 guests / 4 bedrooms / 5 beds / 3.5 baths"
   // strings, with the sharing title as a fallback source.
-  const overview = Array.isArray(raw.overviewItems)
-    ? (raw.overviewItems as unknown[]).filter(
-        (x): x is string => typeof x === "string"
-      )
-    : [];
-  const sharing = toStr(raw.sharingTitle);
-  const counts = parseRoomCounts(
-    overview.length > 0 ? overview : sharing ? sharing.split(/[·•]/) : []
-  );
+  const counts = parseRoomCounts(extractRoomCountParts(raw));
 
   const city =
     (location ? toStr(location.title) : null) ??
-    pickString(raw, ["city", "location.city"]);
+    pickString(raw, [
+      "city",
+      "location.city",
+      "location.name",
+      "localizedCityName",
+      "sectionedDescription.location",
+    ]);
   // The title usually reads "Entire home in Rocky Mount, Missouri".
   const region =
     name && name.includes(",")
       ? name.split(",").pop()!.trim() || null
-      : pickString(raw, ["region", "state"]);
+      : pickString(raw, ["region", "state", "location.state", "location.region"]);
 
   // Airbnb hides exact addresses; "Neighborhood highlights" is a section
   // label, not an address — fall back to the city/region in that case.
   const rawAddress =
     (location ? toStr(location.address) : null) ??
-    pickString(raw, ["address", "publicAddress", "fullAddress"]);
+    pickString(raw, [
+      "address",
+      "publicAddress",
+      "fullAddress",
+      "localizedLocation",
+      "location.address",
+    ]);
   const address =
     rawAddress && !/neighborhood|highlight/i.test(rawAddress)
       ? rawAddress
       : [city, region].filter(Boolean).join(", ") || rawAddress;
 
-  const latitude =
-    (location ? toNum(location.latitude) : null) ??
-    pickNumber(raw, ["latitude", "lat", "coordinates.latitude"]);
-  const longitude =
-    (location ? toNum(location.longitude) : null) ??
-    pickNumber(raw, ["longitude", "lng", "coordinates.longitude"]);
+  const latitude = pickCoordinate(raw, location, "lat");
+  const longitude = pickCoordinate(raw, location, "lng");
 
-  const bedrooms = counts.bedrooms ?? pickNumber(raw, ["bedrooms"]);
-  const beds = counts.beds ?? pickNumber(raw, ["beds"]);
-  const bathrooms = counts.bathrooms ?? pickNumber(raw, ["bathrooms", "baths"]);
+  const bedrooms =
+    counts.bedrooms ??
+    pickNumber(raw, ["bedrooms", "bedroomCount", "roomInfo.bedrooms"]);
+  const beds =
+    counts.beds ?? pickNumber(raw, ["beds", "bedCount", "roomInfo.beds"]);
+  const bathrooms =
+    counts.bathrooms ??
+    pickNumber(raw, ["bathrooms", "baths", "bathroomCount", "roomInfo.bathrooms"]);
   const maxGuests =
-    pickNumber(raw, ["maxGuestCapacity", "maxGuests", "personCapacity"]) ??
+    pickNumber(raw, [
+      "maxGuestCapacity",
+      "maxGuests",
+      "personCapacity",
+      "guestCapacity",
+    ]) ??
     counts.guests;
-  const rating = pickNumber(raw, ["starRating", "rating", "stars", "avgRating"]);
+  const rating = extractRating(raw);
   const reviewCount = pickNumber(raw, [
     "reviewsCount",
     "reviewCount",
     "numberOfReviews",
+    "rating.reviewCount",
+    "reviews.count",
   ]);
   const description = stripHtml(
-    pickString(raw, ["description", "summary", "about"])
+    pickString(raw, [
+      "description",
+      "summary",
+      "about",
+      "htmlDescription",
+      "descriptionHtml",
+      "sectionedDescription.description",
+    ])
   );
   const houseRules = extractHouseRules(raw);
   const hostInfo = extractHostInfo(raw);
@@ -391,32 +567,62 @@ export function normalizeApifyItem(
   if (amenities.length === 0) {
     warnings.push("No amenities found — facilities comparison may be empty.");
   }
+  const expectedAmenities = pickNumber(raw, ["amenitiesExpectedCount"]);
+  if (
+    expectedAmenities !== null &&
+    expectedAmenities > 0 &&
+    amenities.length !== expectedAmenities
+  ) {
+    warnings.push(
+      `Airbnb advertises ${expectedAmenities} amenities, but Firecrawl captured ${amenities.length}. Review the list for missing items.`
+    );
+  }
 
   return {
     url,
-    name: autoEv("name", name),
-    pricePerNight: autoEv("pricePerNight", price),
-    address: autoEv("address", address),
-    city: autoEv("city", city),
-    region: autoEv("region", region),
-    latitude: autoEv("latitude", latitude),
-    longitude: autoEv("longitude", longitude),
-    bedrooms: autoEv("bedrooms", bedrooms),
-    beds: autoEv("beds", beds),
-    bathrooms: autoEv("bathrooms", bathrooms),
-    maxGuests: autoEv("maxGuests", maxGuests),
-    rating: autoEv("rating", rating),
-    reviewCount: autoEv("reviewCount", reviewCount),
+    name: autoEv("name", name, source),
+    pricePerNight: autoEv("pricePerNight", price, source),
+    address: autoEv("address", address, source),
+    city: autoEv("city", city, source),
+    region: autoEv("region", region, source),
+    latitude: autoEv("latitude", latitude, source),
+    longitude: autoEv("longitude", longitude, source),
+    bedrooms: autoEv("bedrooms", bedrooms, source),
+    beds: autoEv("beds", beds, source),
+    bathrooms: autoEv("bathrooms", bathrooms, source),
+    maxGuests: autoEv("maxGuests", maxGuests, source),
+    rating: autoEv("rating", rating, source),
+    reviewCount: autoEv("reviewCount", reviewCount, source),
     // Facilities are inferred from amenity text → medium confidence at best.
-    facilities: ev("facilities", facilities, facilities.length > 0 ? "medium" : "low"),
-    amenities: ev("amenities", amenities, amenities.length > 0 ? "high" : "low"),
-    description: autoEv("description", description),
-    reviews: ev("reviews", reviews, reviews.length > 0 ? "high" : "low"),
-    houseRules: autoEv("houseRules", houseRules),
-    hostInfo: autoEv("hostInfo", hostInfo),
-    images: ev("images", images, images.length > 0 ? "high" : "low"),
-    checkInInfo: autoEv("checkInInfo", checkInInfo),
-    cancellationInfo: autoEv("cancellationInfo", cancellationInfo),
+    facilities: ev(
+      "facilities",
+      facilities,
+      facilities.length > 0 ? "medium" : "low",
+      source
+    ),
+    amenities: ev(
+      "amenities",
+      amenities,
+      amenities.length > 0 ? "high" : "low",
+      source
+    ),
+    description: autoEv("description", description, source),
+    reviews: ev(
+      "reviews",
+      reviews,
+      reviews.length > 0 ? "high" : "low",
+      source
+    ),
+    houseRules: autoEv("houseRules", houseRules, source),
+    hostInfo: autoEv("hostInfo", hostInfo, source),
+    images: ev(
+      "images",
+      images,
+      images.length > 0 ? "high" : "low",
+      source
+    ),
+    checkInInfo: autoEv("checkInInfo", checkInInfo, source),
+    cancellationInfo: autoEv("cancellationInfo", cancellationInfo, source),
     warnings,
   };
 }
@@ -476,6 +682,7 @@ export function normalizedToStayListing(
         ? String(listing.pricePerNight.value)
         : "",
     facilities: listing.facilities.value,
+    amenities: listing.amenities.value,
   };
 
   if (listing.address.value) stay.address = listing.address.value;

@@ -12,7 +12,7 @@ export type Confidence = "high" | "medium" | "low";
 export interface FieldEvidence<T> {
   field: string;
   value: T;
-  /** Where the value came from, e.g. "apify", "derived", "fallback". */
+  /** Where the value came from, e.g. "firecrawl" or "fallback". */
   source: string;
   confidence: Confidence;
 }
@@ -54,6 +54,7 @@ export type ScrapeErrorCode =
   | "not_configured"
   | "timeout"
   | "no_data"
+  | "provider_limit"
   | "provider_error";
 
 export interface ScrapeSuccess {

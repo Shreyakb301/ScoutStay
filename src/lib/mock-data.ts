@@ -61,6 +61,20 @@ export const SAMPLE_STAYS: Omit<StayListing, "id">[] = [
     region: "Lisboa",
     notes:
       "Walkable central location, lots of cafes and restaurants nearby. Reviews mention some street noise on weekends from nearby bars.",
+    listingDescription:
+      "Bright central loft with a full kitchen, balcony, fast Wi-Fi, and self check-in. The apartment is close to restaurants, cafes, transit, and the riverfront.",
+    reviewText:
+      "Guests loved the walkable location, responsive host, clean kitchen, and easy check-in. A few reviews mention weekend street noise from nearby nightlife.",
+    houseRulesText:
+      "Self check-in after 3 PM. Quiet hours after 10 PM. No parties.",
+    amenitiesText:
+      "Fast Wi-Fi, kitchen, balcony, heating, smoke alarm, security cameras, and self check-in.",
+    bedrooms: 1,
+    beds: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    rating: 4.82,
+    reviewCount: 118,
     facilities: [
       "wifi",
       "kitchen",
@@ -84,6 +98,20 @@ export const SAMPLE_STAYS: Omit<StayListing, "id">[] = [
     region: "Lisboa",
     notes:
       "Quiet and secluded riverside spot with a full kitchen. Car required — about 20 minutes drive to town, no transit nearby.",
+    listingDescription:
+      "Private cabin outside Sintra with a full kitchen, parking, hot tub, laundry, and a quiet outdoor patio. Best for travelers with a car who want space and privacy.",
+    reviewText:
+      "Guests praise the peaceful setting, comfortable beds, and private outdoor area. Reviews consistently note that a rental car is necessary.",
+    houseRulesText:
+      "Check-in after 4 PM. Pets allowed with approval. No loud outdoor music after 9 PM.",
+    amenitiesText:
+      "Kitchen, washer and dryer, free parking, hot tub, pet-friendly policy, patio, first aid kit, fire extinguisher, and smoke alarm.",
+    bedrooms: 2,
+    beds: 3,
+    bathrooms: 1.5,
+    maxGuests: 5,
+    rating: 4.74,
+    reviewCount: 86,
     facilities: [
       "wifi",
       "kitchen",
@@ -111,6 +139,20 @@ export const SAMPLE_STAYS: Omit<StayListing, "id">[] = [
     region: "Lisboa",
     notes:
       "Modern hotel with 24h front desk, gym, and fast wifi. Two blocks from the metro station, dining options in the lobby and nearby.",
+    listingDescription:
+      "Modern king room on Avenida da Liberdade with 24-hour front desk, daily housekeeping, fast Wi-Fi, gym access, pool, and strong transit access.",
+    reviewText:
+      "Guests highlight the professional front desk, quiet rooms, comfortable bed, and quick metro access. Business travelers mention reliable Wi-Fi and workspace.",
+    houseRulesText:
+      "Check-in after 2 PM. Front desk open 24 hours. No pets.",
+    amenitiesText:
+      "Fast Wi-Fi, air conditioning, workspace, gym, pool, heating, smoke alarm, carbon monoxide alarm, and fire extinguisher.",
+    bedrooms: 1,
+    beds: 1,
+    bathrooms: 1,
+    maxGuests: 2,
+    rating: 4.68,
+    reviewCount: 342,
     facilities: [
       "wifi",
       "kitchen",

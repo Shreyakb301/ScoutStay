@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import {
-  getAirportIntelligence,
   withDrivingRoute,
   type AirportIntelligence,
 } from "@/lib/airport-intelligence";
@@ -78,22 +77,34 @@ export function useAirportIntelligence(
     setLoading(true);
 
     const resolveAll = async () => {
-      const nextAirports: Record<string, AirportIntelligence | null> = {};
-      const nextErrors: Record<string, string> = {};
+      const response = await fetch("/api/nearby-airports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locations: entries.map(([key, coords]) => ({
+            key,
+            latitude: coords.lat,
+            longitude: coords.lng,
+          })),
+        }),
+      });
+      if (!response.ok) throw new Error("Airport lookup failed");
 
+      const result = (await response.json()) as {
+        airports?: Record<string, AirportIntelligence | null>;
+        errors?: Record<string, string>;
+      };
+      const nextAirports = result.airports ?? {};
+      const nextErrors = result.errors ?? {};
+
+      // Upgrade the server's straight-line estimates to real driving routes
+      // when Google routing is configured.
       await Promise.all(
         entries.map(async ([stayId, coords]) => {
-          try {
-            let intel = await getAirportIntelligence(coords.lat, coords.lng);
-            // Upgrade the straight-line estimate to a real Google route.
-            if (intel) {
-              const route = await fetchDrivingRoute(coords, intel.airport);
-              if (route) intel = withDrivingRoute(intel, route);
-            }
-            nextAirports[stayId] = intel;
-          } catch {
-            nextErrors[stayId] = "Airport lookup failed";
-          }
+          const intel = nextAirports[stayId];
+          if (!intel) return;
+          const route = await fetchDrivingRoute(coords, intel.airport);
+          if (route) nextAirports[stayId] = withDrivingRoute(intel, route);
         })
       );
 
@@ -104,7 +115,15 @@ export function useAirportIntelligence(
       }
     };
 
-    void resolveAll();
+    void resolveAll().catch(() => {
+      if (!cancelled) {
+        setAirports({});
+        setErrors(
+          Object.fromEntries(entries.map(([key]) => [key, "Airport lookup failed"]))
+        );
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
