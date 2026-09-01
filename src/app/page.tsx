@@ -3,27 +3,6 @@ import Link from "next/link";
 import { HomeDemo } from "@/components/home-demo";
 import { Button } from "@/components/ui/button";
 
-const STEPS = [
-  {
-    code: "01",
-    title: "Paste two links",
-    description:
-      "Add the two public Airbnb room links you want to compare.",
-  },
-  {
-    code: "02",
-    title: "Review the amenities",
-    description:
-      "Firecrawl imports both listings. Correct or add anything Airbnb did not expose.",
-  },
-  {
-    code: "03",
-    title: "Compare the differences",
-    description:
-      "See common amenities first, then a neutral table of what only one listing provides.",
-  },
-];
-
 const CAPABILITIES = [
   ["Firecrawl import", "Two listings are imported concurrently on the server"],
   ["Editable review", "Add or remove amenities before accepting scraped data"],
@@ -54,37 +33,6 @@ export default function HomePage() {
           <Button nativeButton={false} size="lg" render={<Link href="/compare" />}>
             Compare two Airbnbs
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="#demo" />}
-          >
-            Try the demo
-          </Button>
-        </div>
-      </section>
-
-      {/* Procedure */}
-      <section id="procedure" className="scroll-mt-20 py-14">
-        <div className="flex items-baseline gap-3 border-b-2 border-foreground pb-2">
-          <span className="data text-xs font-semibold text-signal">§</span>
-          <h2 className="text-lg font-bold uppercase tracking-[0.12em]">
-            How it works
-          </h2>
-        </div>
-        <div className="mt-6 grid gap-px border border-border bg-border md:grid-cols-3">
-          {STEPS.map((step) => (
-            <div key={step.code} className="flex flex-col gap-3 bg-card p-6">
-              <span className="data text-3xl font-bold text-signal">
-                {step.code}
-              </span>
-              <h3 className="text-lg font-semibold">{step.title}</h3>
-              <p className="text-sm text-muted-foreground">
-                {step.description}
-              </p>
-            </div>
-          ))}
         </div>
       </section>
 
