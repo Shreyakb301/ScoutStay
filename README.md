@@ -1,52 +1,80 @@
 # ScoutStay
 
-**A smarter way to compare short-term stays before you book.**
+ScoutStay helps travelers choose between short-term stays using two complementary workflows:
 
-ScoutStay is an Airbnb amenity comparison tool. Paste two public Airbnb links, review the amenities Firecrawl extracts, and see what both listings share and what only one listing provides.
+- **Decision briefing (`/brief`)** — describe the trip, compare two to five stays, and receive an explainable ranking grounded in listing details, real-world location signals, itinerary travel times, and total trip cost.
+- **Airbnb amenity comparison (`/compare`)** — import two public Airbnb listings, review the extracted data, and compare shared and unique amenities without forcing a winner.
 
-## Demo
+## Highlights
 
-Run `npm run dev`, then open the `/compare` URL printed by Next.js. If port
-`3000` is already occupied, Next.js automatically selects another port.
+- Guided trip intake with traveler-specific scoring weights
+- Airbnb import through Firecrawl with editable, confidence-labelled fields
+- Manual comparison for Airbnb, Vrbo, Booking.com, direct hotels, and other stays
+- OpenStreetMap geocoding, nearby-place intelligence, transit counts, and maps
+- Airport access and optional Google driving routes
+- Itinerary travel-time matrix for driving, transit, walking, and cycling
+- Total reservation and per-person cost, including cleaning, taxes, and parking
+- Evidence-based matching for must-haves, deal-breakers, and listing claims
+- Grounded AI briefing with a deterministic fallback when OpenAI is unavailable
+- Client-side saved comparisons, compressed share links, and Markdown exports
+- Confidence gating that declines to recommend when listing data is too thin
+
+## Local development
+
+Requirements: Node.js 20.9 or newer.
+
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). All external API keys are optional; missing integrations degrade to manual entry, route estimates, or deterministic text.
+
+## Configuration
+
+| Variable | Purpose |
+| --- | --- |
+| `FIRECRAWL_API_KEY` | Server-side Airbnb listing import |
+| `GOOGLE_MAPS_API_KEY` | Google Routes driving duration and distance |
+| `OPENAI_API_KEY` | Grounded AI decision brief |
+
+Never expose these variables with a `NEXT_PUBLIC_` prefix.
+
+## Commands
+
+```bash
+npm test       # Node unit tests
+npm run lint   # ESLint and Next.js rules
+npm run build  # Production build using Next's Webpack builder
+npm start      # Serve the production build
+```
+
+## Data and confidence
+
+ScoutStay distinguishes imported, manually entered, real-world, and estimated signals. Driving routes use Google when configured and otherwise fall back to a labelled geographic estimate. Transit, walking, and cycling durations are estimates based on straight-line distance and typical speeds; they are not live schedules. Recommendations are gated when important listing fields are missing.
+
+Saved comparisons stay in the browser's local storage. Share links contain compressed comparison state in the URL. No database is required.
+
+## External services
+
+- [Firecrawl](https://www.firecrawl.dev/) for best-effort Airbnb extraction
+- [OpenStreetMap](https://www.openstreetmap.org/), Nominatim, and Overpass for maps and local context
+- [Google Routes API](https://developers.google.com/maps/documentation/routes) for optional driving routes
+- [OpenAI API](https://platform.openai.com/docs/) for the optional briefing narrative
+
+Public OpenStreetMap services are appropriate for development and light use. A production deployment with meaningful traffic should use a commercial provider or self-hosted Nominatim/Overpass instances and replace the in-memory request limiter with shared storage.
 
 ## Project structure
 
 | Path | Purpose |
 | --- | --- |
-| `src/app` | Next.js pages, layouts, and API routes |
-| `src/components` | Two-listing import, amenity review, and comparison interface |
-| `src/lib` | Firecrawl integration, listing normalization, and amenity matching |
-| `public` | Static assets |
+| `src/app` | Next.js pages and server API routes |
+| `src/components` | Intake, import, comparison, map, and briefing interfaces |
+| `src/hooks` | Client-side location and briefing data orchestration |
+| `src/lib` | Scraping, scoring, RAG, routing, cost, sharing, and export logic |
+| `tests` | Dependency-free Node unit tests |
 
-## Frontend
+## Security
 
-- Next.js App Router with React client components
-- Tailwind CSS interface with reusable UI primitives
-- Concurrent two-listing import with independent error recovery
-- Responsive shared-and-different amenity results
-
-## Special features
-
-| Feature | What it does |
-| --- | --- |
-| Firecrawl import | Pulls two public Airbnb listings concurrently |
-| Editable review | Lets users correct incomplete scraped amenity lists |
-| Shared amenities | Groups amenities found in both reviewed listings |
-| Differences table | Shows listing-specific amenities without forcing a winner |
-| Manual recovery | Keeps successful data when the other listing cannot be scraped |
-
-## How it works
-
-1. Paste two Airbnb listing links.
-2. ScoutStay imports both listings with Firecrawl and lets you correct the extracted amenities.
-3. The results show shared amenities first, followed by a neutral table of differences.
-
-## Tech stack
-
-`Next.js` · `React` · `TypeScript` · `Tailwind CSS` · `Firecrawl`
-
-## Listing scraper configuration
-
-Set `FIRECRAWL_API_KEY` to use Firecrawl as the Airbnb listing scraper. When a
-listing is blocked or incomplete, ScoutStay keeps the other successful import
-and lets the user enter or correct amenities manually.
+Costly API routes are rate-limited, AI payloads are bounded, integration keys remain server-side, and standard response-hardening headers are applied globally. Run `npm audit --omit=dev` as part of dependency maintenance.

@@ -4,6 +4,7 @@ import {
   type Coordinate,
   type TravelMode,
 } from "@/lib/travel-times";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,12 @@ function validPoint(value: unknown): value is Point {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const rate = checkRateLimit(request, "travel-times", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) return rateLimitResponse(rate);
+
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;

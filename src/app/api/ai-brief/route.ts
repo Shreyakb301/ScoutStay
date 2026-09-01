@@ -3,6 +3,7 @@ import {
   needsMoreInfoMessage,
   type AiBriefInput,
 } from "@/lib/ai-brief";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,12 @@ const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MODEL = "gpt-4o-mini";
 
 export async function POST(request: Request): Promise<Response> {
+  const rate = checkRateLimit(request, "ai-brief", {
+    limit: 20,
+    windowMs: 10 * 60_000,
+  });
+  if (!rate.allowed) return rateLimitResponse(rate);
+
   let input: AiBriefInput | undefined;
   try {
     const body = (await request.json()) as { input?: AiBriefInput };
@@ -20,7 +27,13 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ ok: false, code: "bad_request" }, { status: 400 });
   }
 
-  if (!input || !Array.isArray(input.stays)) {
+  if (
+    !input ||
+    !Array.isArray(input.stays) ||
+    input.stays.length < 2 ||
+    input.stays.length > 5 ||
+    JSON.stringify(input).length > 40_000
+  ) {
     return Response.json({ ok: false, code: "bad_request" }, { status: 400 });
   }
 

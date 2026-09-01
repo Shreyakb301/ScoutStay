@@ -5,7 +5,7 @@ export function SiteFooter() {
         <p className="eyebrow">
           © {new Date().getFullYear()} ScoutStay
         </p>
-        <p className="eyebrow">Listings imported with Firecrawl</p>
+        <p className="eyebrow">Firecrawl · OpenStreetMap · explainable scoring</p>
       </div>
     </footer>
   );

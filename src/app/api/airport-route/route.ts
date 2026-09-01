@@ -1,4 +1,5 @@
 import { getDrivingRoute } from "@/lib/google-routes";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,12 @@ function num(value: unknown): number | null {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const rate = checkRateLimit(request, "airport-route", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) return rateLimitResponse(rate);
+
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;

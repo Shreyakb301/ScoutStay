@@ -172,15 +172,44 @@ export function createDefaultTripContext(): TripContext {
 
 /** A ready-to-score sample context, for the "Use sample trip" shortcut. */
 export function createSampleTripContext(): TripContext {
+  const checkIn = new Date();
+  checkIn.setUTCDate(checkIn.getUTCDate() + 30);
+  const checkOut = new Date(checkIn);
+  checkOut.setUTCDate(checkOut.getUTCDate() + 4);
   return {
     ...createDefaultTripContext(),
     accommodation: "either",
     arrivalMethod: "airport",
+    arrivalLocation: {
+      id: "sample-lis-airport",
+      name: "Lisbon Airport",
+      formattedAddress: "Alameda das Comunidades Portuguesas, Lisbon, Portugal",
+      latitude: 38.7756,
+      longitude: -9.1354,
+    },
     travelGroup: "couple",
     withChildren: null,
+    checkIn: checkIn.toISOString().slice(0, 10),
+    checkOut: checkOut.toISOString().slice(0, 10),
+    visitPlaces: [
+      {
+        id: "sample-belem",
+        name: "Belém Tower",
+        formattedAddress: "Av. Brasília, Lisbon, Portugal",
+        latitude: 38.6916,
+        longitude: -9.216,
+      },
+      {
+        id: "sample-alfama",
+        name: "Alfama",
+        formattedAddress: "Alfama, Lisbon, Portugal",
+        latitude: 38.711,
+        longitude: -9.13,
+      },
+    ],
     preferredArea: "downtown",
     rentalCar: "no",
-    localTransport: "walking",
+    localTransport: "transit",
     pets: "no",
   };
 }

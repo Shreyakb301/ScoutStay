@@ -3,6 +3,7 @@ import {
   DEFAULT_NEARBY_RADIUS_M,
   fetchNearbyPlaces,
 } from "@/lib/nearby-places";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,12 @@ function validLocation(value: unknown): value is InputLocation {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const rate = checkRateLimit(request, "nearby-transit", {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) return rateLimitResponse(rate);
+
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;

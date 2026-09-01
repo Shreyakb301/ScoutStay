@@ -15,7 +15,7 @@ export function SiteHeader() {
             <span className="text-sm font-bold uppercase tracking-[0.14em]">
               ScoutStay
             </span>
-            <span className="eyebrow text-[0.6rem]">Amenity comparison</span>
+            <span className="eyebrow text-[0.6rem]">Stay decision support</span>
           </span>
         </Link>
 
@@ -26,14 +26,16 @@ export function SiteHeader() {
             variant="ghost"
             render={<Link href="/brief" />}
           >
-            Decision brief
+            <span className="sm:hidden">Brief</span>
+            <span className="hidden sm:inline">Decision brief</span>
           </Button>
           <Button
             nativeButton={false}
             size="sm"
             render={<Link href="/compare" />}
           >
-            Compare Airbnbs
+            <span className="sm:hidden">Compare</span>
+            <span className="hidden sm:inline">Compare Airbnbs</span>
           </Button>
         </nav>
       </div>

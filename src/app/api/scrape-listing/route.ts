@@ -1,6 +1,7 @@
 import { normalizeScrapedItem, isValidAirbnbUrl } from "@/lib/listing-normalizer";
 import { scrapeAirbnbListing, ScrapeError } from "@/lib/scrape-listing";
 import type { ScrapeErrorCode, ScrapeResult } from "@/lib/scrape-types";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,12 @@ function isoDateString(value: unknown): string | undefined {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const rate = checkRateLimit(request, "scrape-listing", {
+    limit: 10,
+    windowMs: 10 * 60_000,
+  });
+  if (!rate.allowed) return rateLimitResponse(rate);
+
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
