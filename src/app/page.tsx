@@ -47,6 +47,9 @@ export default function HomePage() {
           what makes each one different without a black-box score.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
+          <Button nativeButton={false} size="lg" render={<Link href="/brief" />}>
+            Build a decision brief
+          </Button>
           <Button nativeButton={false} size="lg" render={<Link href="/compare" />}>
             Compare two Airbnbs
           </Button>

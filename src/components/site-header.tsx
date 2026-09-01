@@ -19,7 +19,15 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav aria-label="Primary navigation">
+        <nav aria-label="Primary navigation" className="flex items-center gap-2">
+          <Button
+            nativeButton={false}
+            size="sm"
+            variant="ghost"
+            render={<Link href="/brief" />}
+          >
+            Decision brief
+          </Button>
           <Button
             nativeButton={false}
             size="sm"

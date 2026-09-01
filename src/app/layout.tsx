@@ -6,11 +6,11 @@ import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "ScoutStay — Compare Airbnb amenities",
+    default: "ScoutStay — Make a better stay decision",
     template: "%s — ScoutStay",
   },
   description:
-    "Compare the shared and unique amenities from two Airbnb listings using reviewed Firecrawl data.",
+    "Compare stays using reviewed amenities, trip needs, real-world location signals, and explainable recommendations.",
 };
 
 export default function RootLayout({
