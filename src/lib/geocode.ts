@@ -31,6 +31,25 @@ export interface AddressSuggestion {
   region?: string;
 }
 
+export type TransportPlaceType = "airport" | "train" | "bus";
+
+const TRANSPORT_SEARCH_TERMS: Record<TransportPlaceType, string> = {
+  airport: "airport",
+  train: "train station",
+  bus: "bus station",
+};
+
+/** Add a transport qualifier without changing what is shown in the input. */
+export function buildTransportPlaceQuery(
+  query: string,
+  type?: TransportPlaceType
+): string {
+  const trimmed = query.trim();
+  return type && trimmed
+    ? `${trimmed} ${TRANSPORT_SEARCH_TERMS[type]}`
+    : trimmed;
+}
+
 interface NominatimPlace {
   place_id?: number;
   lat?: string;

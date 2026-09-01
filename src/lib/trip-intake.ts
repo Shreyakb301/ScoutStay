@@ -269,8 +269,8 @@ export const INTAKE_QUESTIONS: IntakeQuestion[] = [
   {
     id: "arrivalLocation",
     section: "Trip context",
-    title: "Where do you land?",
-    helper: "Search the airport, station, or terminal. Optional.",
+    title: "Where do you arrive?",
+    helper: "Search for your airport, train station, or bus/coach terminal. Optional.",
     kind: "place",
     required: false,
     visible: (c) =>

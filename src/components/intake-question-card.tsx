@@ -142,12 +142,25 @@ export function IntakeQuestionCard({
           />
         );
       case "arrivalLocation":
+        const transportType =
+          context.arrivalMethod === "airport" ||
+          context.arrivalMethod === "train" ||
+          context.arrivalMethod === "bus"
+            ? context.arrivalMethod
+            : undefined;
+        const arrivalPlaceholder =
+          transportType === "airport"
+            ? "Search airport name or city…"
+            : transportType === "train"
+              ? "Search train station or city…"
+              : "Search bus terminal or city…";
         return (
           <div data-keep-keys className="flex flex-col gap-3">
             <PlaceAutocomplete
               id="arrival-location"
-              placeholder="Search airport, station, or terminal…"
+              placeholder={arrivalPlaceholder}
               autoFocus
+              transportType={transportType}
               onSelect={(place) => onChange({ arrivalLocation: place })}
             />
             {context.arrivalLocation && (

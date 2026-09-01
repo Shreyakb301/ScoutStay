@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MapPin, Search } from "lucide-react";
+import { Bus, Loader2, MapPin, Plane, Search, TrainFront } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { usePlaceAutocomplete } from "@/hooks/use-place-autocomplete";
-import type { AddressSuggestion } from "@/lib/geocode";
+import {
+  buildTransportPlaceQuery,
+  type AddressSuggestion,
+  type TransportPlaceType,
+} from "@/lib/geocode";
 import type { PlaceRef } from "@/lib/trip-intake";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +30,18 @@ interface PlaceAutocompleteProps {
   /** Clear the field after a selection (for adding several places). */
   clearOnSelect?: boolean;
   autoFocus?: boolean;
+  /** Restrict results to the selected arrival transport category. */
+  transportType?: TransportPlaceType;
 }
+
+const TRANSPORT_META = {
+  airport: { label: "Airport", plural: "airports", icon: Plane },
+  train: { label: "Train station", plural: "train stations", icon: TrainFront },
+  bus: { label: "Bus terminal", plural: "bus terminals", icon: Bus },
+} satisfies Record<
+  TransportPlaceType,
+  { label: string; plural: string; icon: typeof Plane }
+>;
 
 /**
  * A Nominatim-backed place search box. Debounced and cached via
@@ -38,15 +53,21 @@ export function PlaceAutocomplete({
   onSelect,
   clearOnSelect = false,
   autoFocus = false,
+  transportType,
 }: PlaceAutocompleteProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const searchQuery = buildTransportPlaceQuery(query, transportType);
   const { suggestions, loading, error, active } = usePlaceAutocomplete(
-    open ? query : ""
+    open ? searchQuery : ""
   );
+  const transportMeta = transportType
+    ? TRANSPORT_META[transportType]
+    : null;
+  const ResultIcon = transportMeta?.icon ?? MapPin;
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -128,9 +149,24 @@ export function PlaceAutocomplete({
         <ul
           id={`${id}-listbox`}
           role="listbox"
-          aria-label="Place suggestions"
+          aria-label={
+            transportMeta
+              ? `${transportMeta.label} suggestions`
+              : "Place suggestions"
+          }
           className="absolute z-50 mt-1 max-h-64 w-full overflow-auto border border-border bg-popover p-1 text-popover-foreground shadow-md"
         >
+          {transportMeta && !error && (
+            <li
+              role="presentation"
+              className="flex items-center gap-2 border-b border-border px-3 py-2"
+            >
+              <ResultIcon className="size-3.5 text-signal" />
+              <span className="eyebrow text-foreground">
+                Searching {transportMeta.plural}
+              </span>
+            </li>
+          )}
           {error ? (
             <li className="px-3 py-2 text-sm text-nogo">{error}</li>
           ) : loading && suggestions.length === 0 ? (
@@ -139,7 +175,7 @@ export function PlaceAutocomplete({
             </li>
           ) : suggestions.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted-foreground">
-              No matching places found.
+              No matching {transportMeta?.plural ?? "places"} found.
             </li>
           ) : (
             suggestions.map((suggestion, index) => (
@@ -156,10 +192,17 @@ export function PlaceAutocomplete({
                   index === highlighted && "bg-accent text-accent-foreground"
                 )}
               >
-                <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <ResultIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0">
-                  <span className="block truncate font-medium">
-                    {suggestion.placeName}
+                  <span className="flex items-center gap-2">
+                    <span className="min-w-0 truncate font-medium">
+                      {suggestion.placeName}
+                    </span>
+                    {transportMeta && (
+                      <span className="eyebrow shrink-0 border border-border px-1 py-0.5 text-[0.55rem]">
+                        {transportMeta.label}
+                      </span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {suggestion.formattedAddress}
